@@ -248,68 +248,131 @@
 			   document.getElementById(tabId).classList.add('active');
 		   }
 
-		   // Animated background bubbles
+		   // Animated background: floating code snippets and binary digits
 		   const canvas = document.querySelector('.background-anim');
 		   const ctx = canvas.getContext('2d');
-		   let bubbles = [];
-		   function resizeCanvas() {
-			   canvas.width = window.innerWidth;
-			   canvas.height = window.innerHeight;
+		   let floatingItems = [];
+		   const codeSnippets = [
+			   'console.log("Hello, World!");',
+			   'def greet(name):',
+			   '  print(f"Hi, {name}")',
+			   'for (let i = 0; i < n; i++) {',
+			   'if (error) return;',
+			   'const sum = a + b;',
+			   'function add(x, y) {',
+			   'return x * y;',
+			   'let arr = [1,2,3];',
+			   'print("Success!")',
+			   'class Person { ... }',
+			   'SELECT * FROM users;',
+			   'git commit -m "update"',
+			   'docker run -it ...',
+			   'curl https://api/...',
+			   'public static void main',
+			   'try { ... } catch(e) {}',
+			   'import numpy as np',
+			   'echo "Hello"',
+			   'ls -la',
+		   ];
+		   function randomBinary(length) {
+			   let s = '';
+			   for (let i = 0; i < length; i++) {
+				   s += Math.random() > 0.5 ? '1' : '0';
+			   }
+			   return s;
 		   }
 		   function randomColor() {
-			   const colors = ['#6C63FF', '#FF6584', '#43E6B0', '#e0e7ff', '#f4f6fb'];
+			   const colors = ['#43E6B0', '#FF6584', '#6C63FF', '#e0e7ff', '#f4f6fb'];
 			   return colors[Math.floor(Math.random() * colors.length)];
 		   }
-		   function createBubble() {
+		   function createFloatingItem() {
+			   const isCode = Math.random() > 0.4;
+			   let text, fontSize, color, alpha;
+			   if (isCode) {
+				   text = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+				   fontSize = 13 + Math.random() * 7;
+				   color = randomColor();
+				   alpha = 0.13 + Math.random() * 0.13;
+			   } else {
+				   text = randomBinary(16 + Math.floor(Math.random() * 16));
+				   fontSize = 12 + Math.random() * 6;
+				   color = '#43E6B0';
+				   alpha = 0.10 + Math.random() * 0.10;
+			   }
+			   // Spread items randomly across the canvas
+			   const x = Math.random() * canvas.width;
+			   const y = Math.random() * canvas.height;
+			   // Give each item a random direction and speed
+			   const angle = Math.random() * 2 * Math.PI;
+			   const speed = 0.2 + Math.random() * 0.7;
+			   const dx = Math.cos(angle) * speed;
+			   const dy = -Math.abs(Math.sin(angle)) * speed - 0.1; // always float up a bit
 			   return {
-				   x: Math.random() * canvas.width,
-				   y: canvas.height + 20,
-				   r: 12 + Math.random() * 24,
-				   speed: 0.5 + Math.random() * 1.2,
-				   color: randomColor(),
-				   alpha: 0.18 + Math.random() * 0.18
+				   x,
+				   y,
+				   dx,
+				   dy,
+				   text,
+				   fontSize,
+				   color,
+				   alpha,
+				   isCode
 			   };
 		   }
-		   function drawBubbles() {
+		   function drawFloatingItems() {
 			   ctx.clearRect(0, 0, canvas.width, canvas.height);
-			   for (let b of bubbles) {
+			   for (let item of floatingItems) {
 				   ctx.save();
-				   ctx.globalAlpha = b.alpha;
-				   ctx.beginPath();
-				   ctx.arc(b.x, b.y, b.r, 0, 2 * Math.PI);
-				   ctx.fillStyle = b.color;
-				   ctx.shadowColor = b.color;
-				   ctx.shadowBlur = 16;
-				   ctx.fill();
+				   ctx.globalAlpha = item.alpha;
+				   ctx.font = `bold ${item.fontSize}px Fira Mono, Menlo, Monaco, Consolas, monospace`;
+				   ctx.fillStyle = item.color;
+				   ctx.shadowColor = item.color;
+				   ctx.shadowBlur = item.isCode ? 0 : 8;
+				   ctx.fillText(item.text, item.x, item.y);
 				   ctx.restore();
 			   }
 		   }
-		   function updateBubbles() {
-			   for (let b of bubbles) {
-				   b.y -= b.speed;
-				   if (b.y + b.r < 0) {
-					   Object.assign(b, createBubble());
-					   b.y = canvas.height + b.r;
+		   function updateFloatingItems() {
+			   for (let item of floatingItems) {
+				   item.x += item.dx;
+				   item.y += item.dy;
+				   // Wrap horizontally
+				   if (item.x < -200) item.x = canvas.width + 10;
+				   if (item.x > canvas.width + 200) item.x = -10;
+				   // If out of vertical bounds, respawn at bottom with new direction
+				   if (item.y < -30) {
+					   const newItem = createFloatingItem();
+					   item.x = newItem.x;
+					   item.y = canvas.height + 30;
+					   item.dx = newItem.dx;
+					   item.dy = newItem.dy;
+					   item.text = newItem.text;
+					   item.fontSize = newItem.fontSize;
+					   item.color = newItem.color;
+					   item.alpha = newItem.alpha;
+					   item.isCode = newItem.isCode;
 				   }
 			   }
 		   }
 		   function animate() {
-			   drawBubbles();
-			   updateBubbles();
+			   drawFloatingItems();
+			   updateFloatingItems();
 			   requestAnimationFrame(animate);
 		   }
-		   function initBubbles() {
-			   bubbles = [];
-			   for (let i = 0; i < 22; i++) {
-				   bubbles.push(createBubble());
+		   function initFloatingItems() {
+			   floatingItems = [];
+			   for (let i = 0; i < 28; i++) {
+				   floatingItems.push(createFloatingItem());
 			   }
 		   }
 		   window.addEventListener('resize', () => {
-			   resizeCanvas();
-			   initBubbles();
+			   canvas.width = window.innerWidth;
+			   canvas.height = window.innerHeight;
+			   initFloatingItems();
 		   });
-		   resizeCanvas();
-		   initBubbles();
+		   canvas.width = window.innerWidth;
+		   canvas.height = window.innerHeight;
+		   initFloatingItems();
 		   animate();
 	   </script>
 	</script>
